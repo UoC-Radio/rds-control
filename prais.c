@@ -697,7 +697,7 @@ prais_get_ps(struct rds_encoder *enc, uint8_t dsn, uint8_t psn, char* ps)
 	msg->type = PRAIS_MT_PS;
 	msg->len = 2;
 	msg->data[0] = 1;
-	msg->data[1] = psn | (dsn == 2) ? PRAIS_PSN_INDEX_GROUP2 : 0;
+	msg->data[1] = psn | ((dsn == 2) ? PRAIS_PSN_INDEX_GROUP2 : 0);
 
 	ret = prais_send_frame_to_enc(enc, &request);
 	if(ret < 0)
@@ -762,7 +762,7 @@ prais_set_ps(struct rds_encoder *enc, uint8_t dsn, uint8_t psn, char* ps)
 
 	/* Index 0 - 15, or with the flag above to
 	 * refer to the 2nd group */
-	msg->data[len++] = psn | (dsn == 2) ? PRAIS_PSN_INDEX_GROUP2 : 0;
+	msg->data[len++] = psn | ((dsn == 2) ? PRAIS_PSN_INDEX_GROUP2 : 0);
 
 
 	/* Duration 0 - 100
@@ -1008,7 +1008,7 @@ prais_set_dynpty(struct rds_encoder *enc, uint8_t dsn, uint8_t psn, uint8_t dynp
 
 	msg->type = PRAIS_MT_TAMSDI;
 	msg->len = 1;
-	msg->data[0] = tamsdi | (dynpty != 0) ? PRAIS_TAMSDI_DYNPTY : 0;
+	msg->data[0] = tamsdi | ((dynpty != 0) ? PRAIS_TAMSDI_DYNPTY : 0);
 
 	ret = prais_send_frame_to_enc(enc, &data_frame);
 	if(ret < 0)
