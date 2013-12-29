@@ -356,8 +356,6 @@ prais_get_tamsdi(struct rds_encoder *enc)
 	msg->type = PRAIS_MT_TAMSDI;
 	msg->len = 0;
 
-	enc->seq = 0;
-
 	ret = prais_send_frame_to_enc(enc, &request);
 	if(ret < 0)
 		return ret;
@@ -441,7 +439,7 @@ prais_set_rt_mode(struct rds_encoder *enc, uint8_t mode)
 		msg->type = PRAIS_MT_RT;
 		msg->len = 2;
 		msg->data[0] = 0;
-		msg->data[0] = 0;
+		msg->data[1] = 0;
 	
 		prais_send_frame_to_enc(enc, &data_frame);
 
@@ -816,11 +814,17 @@ prais_set_rt(struct rds_encoder *enc, uint8_t dsn, uint8_t psn, struct rds_rt *r
 	struct prais_message *msg = &data_frame.msg;
 	struct prais_data_frame reply;
 	int ret = 0;
+	int i = 0;
+	int c = 0;
+	int j = 0;
+	int k = 0;
 
 	memset(&data_frame, 0, sizeof(struct prais_data_frame));
 
 	if(enc->addr == PRAIS_DF_ADDR_BCAST)
 		return -EOPNOTSUPP;
+
+	enc->seq = 0;
 
 	/* If active, disable it */
 	ret = prais_get_rt_status(enc);
@@ -828,31 +832,42 @@ prais_set_rt(struct rds_encoder *enc, uint8_t dsn, uint8_t psn, struct rds_rt *r
 		return ret;
 
 	/* Pending RT transmission <- WTF ? */
-//	if(ret == 1)
-//		return -EAGAIN;
+	if(ret == 1)
+		return -EAGAIN;
 
 	/* Set to inactive */
 	ret = prais_set_rt_mode(enc, 0);
 	if(ret < 0)
 		return ret;
 
-/*	msg->type = PRAIS_MT_RT;
-	msg->len = 1;
-	msg->data[0] = ;
+	for(k = 0; k < 4; k++) {
+		for(i = 0; i < 16; i++) {
+			msg->type = PRAIS_MT_RT;
+			msg->len = 4;
+			c = 4 * i;
 
-	prais_send_frame_to_enc(enc, &data_frame);
+			for(j = 0; j < 4; j++, c++) {
+				/* Non-ASCII character */
+				if (rt->msg[c] < 0x20 || rt->msg[c] > 0x7E) {
+					msg->data[j] = ' ';
+				} else
+					msg->data[j] = rt->msg[c];
+			}
 
-	ret = prais_get_frame_from_enc(enc, &reply);
-	if(ret < 0)
-		return ret;
+			prais_send_frame_to_enc(enc, &data_frame);
 
-	prais_send_ack_to_enc(enc);
+			ret = prais_get_frame_from_enc(enc, &reply);
+			if(ret < 0)
+				return ret;
 
-	ret = reply.msg.data[0];
-*/
+			prais_send_ack_to_enc(enc);
+
+			ret = reply.msg.data[0];
+		}
+	}
 
 	/* Enable RadioText */
-	ret = prais_set_rt_mode(enc, 2);
+	ret = prais_set_rt_mode(enc, 1);
 	if(ret < 0)
 		return ret;
 
