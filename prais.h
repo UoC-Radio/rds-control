@@ -71,6 +71,10 @@ struct prais_message {
 
 #define PRAIS_MT_MAX_LEN	40
 
+/* Prais RT related */
+#define PRAIS_RT_SPACE_LENGTH 8
+
+
 /* A data frame for Prais Coder mod. 735 */
 struct prais_data_frame {
 	uint8_t no_reply;		/* Set the no reply flag */

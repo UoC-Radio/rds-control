@@ -797,6 +797,32 @@ prais_set_ps(struct rds_encoder *enc, uint8_t dsn, uint8_t psn, char* ps)
 	return ret;
 }
 
+/**
+ * prais_manipulator_rt - Replicates message as many times at it fits to the rt buffer
+ * @msg: The message to be manipulated
+ */
+static void
+prais_manipulator_rt(char* msg)
+{
+	size_t len;
+	int times;
+	int segment_size;
+	int i;
+	
+	len = strlen(msg);
+	segment_size = len + PRAIS_RT_SPACE_LENGTH;
+	times = (RDS_RT_MSG_LEN_MAX - 1) / segment_size;
+	
+	/* optional */
+	if(times < 2) return;
+
+	memset(msg + len, ' ', (RDS_RT_MSG_LEN_MAX - 1) - len);
+	
+	for(i = 1; i < times; ++i)
+	{
+		memcpy(msg + i * segment_size, msg, segment_size);
+	}
+}
 
 /**
  * prais_set_rt - Set RadioText message on a Prais encoder
@@ -824,6 +850,11 @@ prais_set_rt(struct rds_encoder *enc, uint8_t dsn, uint8_t psn, struct rds_rt *r
 	if(enc->addr == PRAIS_DF_ADDR_BCAST)
 		return -EOPNOTSUPP;
 
+	if(rt->buffer_config == RDS_RT_BUFF_CONFIG_APPEND)
+		return -EOPNOTSUPP;
+	else if(rt->buffer_config == RDS_RT_BUFF_CONFIG_FLUSH && strlen(rt->msg) == 0)
+		return prais_set_rt_mode(enc, 0);
+		
 	enc->seq = 0;
 
 	/* If active, disable it */
@@ -839,6 +870,9 @@ prais_set_rt(struct rds_encoder *enc, uint8_t dsn, uint8_t psn, struct rds_rt *r
 	ret = prais_set_rt_mode(enc, 0);
 	if(ret < 0)
 		return ret;
+	
+	/* Manipulate message */	
+	prais_manipulator_rt(rt->msg);	
 
 	for(k = 0; k < 4; k++) {
 		for(i = 0; i < 16; i++) {
